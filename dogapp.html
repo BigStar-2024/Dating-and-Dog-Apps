@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Sitter App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .card {
+            width: 250px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .card img {
+            width: 100%;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .chat-box {
+            /* display: none; */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            background-color: #89e9a1;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .chat-box .messages {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .chat-box input {
+            width: 94%;
+            padding: 5px;
+            margin-top: 0px;
+            margin-bottom: 20px;
+        }
+
+        .chat-box button,
+        .delete-btn,
+        .chat-btn {
+            padding: 5px 20px;
+            margin: 5px;
+            border-radius: 25px;
+            background-color: rgb(226, 238, 169);
+        }
+
+        .chat-box button:hover,
+        .delete-btn:hover,
+        .chat-btn:hover {
+            background-color: rgb(195, 72, 240);
+            color: white;
+        }
+
+        .show-cards-btn {
+            padding: 15px 40px;
+            margin: 25px 40px;
+            font-size: 20px;
+            font-weight: 600;
+            border-radius: 25px;
+            background-color: rgb(245, 245, 245);
+            width: fit-content;
+            height: fit-content;
+            color: rgb(195, 72, 240);
+        }
+
+        .show-cards-btn:hover {
+            background-color: rgb(195, 72, 240);
+            color: rgb(255, 255, 255);
+            transition: 0.5s;
+        }
+
+        .greeting {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .filter-btn,
+        .reset {
+            padding: 10px 20px;
+            margin: 5px 15px;
+            border-radius: 25px;
+            background-color: rgb(255, 255, 255);
+            width: fit-content;
+            color: rgb(9, 0, 0);
+            font-size: 20px;
+
+        }
+
+        .reset:hover {
+            background-color: rgb(166, 45, 166);
+            color: rgb(255, 255, 255);
+            transition: 0.5s;
+        }
+
+        .main-title {
+            display: flex;
+        }
+
+        .show-cards-btn {
+            margin-right: 40px;
+        }
+
+        #breed-select {
+            font-size: 20px;
+            padding: 10px 20px;
+        }
+
+        #selected-breed {
+            font-size: 18px;
+            color: brown;
+            font-weight: 600;
+            margin: 0px 15px;
+        }
+
+        .filter-select {
+            display: flex;
+            padding: 10px 20px;
+            border-radius: 15px;
+            background-color: rgb(237, 210, 250);
+            width: fit-content;
+            border-style: inset;
+            color: rgb(131, 38, 12);
+            margin-top: 10px;
+            margin-left: 40px;
+        }
+
+        #select {
+            font-size: 18px;
+            color: rgb(0, 0, 0);
+            margin: 0px;
+        }
+
+        .speech-bubble {
+            color: rgb(243, 57, 57);
+            font-size: 40px;
+            width: fit-content;
+            height: fit-content;
+            font-family: fantasy;
+            padding: 10px 20px;
+            font-weight: 600;
+            font-style: oblique;
+        }
+
+        .filter-reset {
+            display: flex;
+            margin: 7px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-title">
+        <button class="show-cards-btn">Show 10 new cards</button>
+        <div>
+            <div class="filter-reset">
+                <h4 class="filter-btn">Select a Dog Breed:</h4>
+                <select id="breed-select" onchange="selectBreed()"></select>
+                <button class="reset" onclick="reset()">Reset</button>
+            </div>
+            <div class="filter-select">
+                <p id="select">You Selected:</p>
+                <p id="selected-breed"></p>
+            </div>
+        </div>
+    </div>
+    <div id="container" class="container">
+    </div>
+    <div class="chat-box" style="display: none;">
+        <p class="greeting">Greetings from the dog owner!</p>
+        <div class="messages"></div>
+        <input type="text" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="closeChat()">Close</button>
+    </div>
+    <script>
+        const container = document.querySelector('.container');
+        const chatBox = document.createElement('div');
+        chatBox.classList.add('chat-box');
+        let messages = [];
+        let filteredBreed = '';
+        let selectedBreeds = [];
+        var shouldExit = false;
+        var count = 0;
+
+        function fetchData(url) {
+            return fetch(url)
+                .then(response => response.json())
+                .catch(error => console.log('Error fetching data:', error));
+        }
+
+        function reset() {
+            document.getElementById('selected-breed').innerHTML = "";
+            shouldExit = false;
+            count = 0;
+        }
+
+        function createCard(user, dog) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+
+            // Create user image
+            const userImage = document.createElement('img');
+            userImage.src = user.picture.large;
+            userImage.alt = 'User Image';
+            userImage.style.borderRadius = '50%';
+            userImage.style.width = '50px';
+            userImage.style.height = '50px';
+            card.appendChild(userImage);
+
+            // Create dog image
+            const dogImage = document.createElement('img');
+            dogImage.src = dog.message;
+            dogImage.alt = 'Dog Image';
+            dogImage.style.borderRadius = '5px';
+            dogImage.style.width = '100%';
+            dogImage.style.height = '200px';
+            dogImage.style.backgroundSize = 'cover';
+            // dogImage.style.objectFit = 'cover';
+            card.appendChild(dogImage);
+
+            let speechBubble = null;
+            dogImage.addEventListener('click', (event) => {
+                if (speechBubble) {
+                    speechBubble.remove(); // Remove the existing speech bubble
+                    speechBubble = null;
+                } else {
+                    const randomGreeting = getRandomGreeting();
+                    speechBubble = document.createElement('div');
+                    speechBubble.classList.add('speech-bubble');
+                    speechBubble.textContent = randomGreeting;
+                    speechBubble.style.position = 'absolute';
+                    speechBubble.style.top = `${event.clientY}px`;
+                    speechBubble.style.left = `${event.clientX + 100}px`;
+                    document.body.appendChild(speechBubble);
+                }
+            });
+
+            // Create user profile
+            const userProfile = document.createElement('div');
+            userProfile.innerHTML = `<p>Name: ${user.name.first} ${user.name.last}</p> 
+                             <p>Location: ${user.location.city}, ${user.location.country}</p>`;
+            card.appendChild(userProfile);
+
+            // Create delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.addEventListener('click', () => {
+                card.remove();
+                replaceCard();
+            });
+            card.appendChild(deleteBtn);
+
+            // Create chat button
+            const chatBtn = document.createElement('button');
+            chatBtn.textContent = 'Chat';
+            chatBtn.classList.add('chat-btn');
+            chatBtn.addEventListener('click', () => {
+                openChat(user.name.first);
+            });
+            card.appendChild(chatBtn);
+
+            container.appendChild(card);
+        }
+        function createCard1(user, dog) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            const userImage = document.createElement('img');
+            userImage.src = user.picture.large;
+            userImage.alt = 'User Image';
+            userImage.style.borderRadius = '50%';
+            userImage.style.width = '50px';
+            userImage.style.height = '50px';
+            card.appendChild(userImage);
+            const dogImage = document.createElement('img');
+            dogImage.src = dog;
+            dogImage.alt = 'Dog Image';
+            dogImage.style.borderRadius = '5px';
+            dogImage.style.width = '100%';
+            dogImage.style.height = '200px';
+            dogImage.style.backgroundSize = 'cover'
+            card.appendChild(dogImage);
+            const userProfile = document.createElement('div');
+            userProfile.innerHTML = `<p>Name: ${user.name.first} ${user.name.last}</p> 
+                             <p>Location: ${user.location.city}, ${user.location.country}</p>`;
+            card.appendChild(userProfile);
+
+            const chatBtn = document.createElement('button');
+            chatBtn.textContent = 'Chat';
+            chatBtn.classList.add('chat-btn'); // Add the chat-btn class 
+            chatBtn.addEventListener('click', () => {
+                openChat(user.name.first);
+            });
+            card.appendChild(chatBtn);
+            let speechBubble = null;
+            dogImage.addEventListener('click', (event) => {
+                if (speechBubble) {
+                    speechBubble.remove(); // Remove the existing speech bubble
+                    speechBubble = null;
+                } else {
+                    const randomGreeting = getRandomGreeting();
+                    speechBubble = document.createElement('div');
+                    speechBubble.classList.add('speech-bubble');
+                    speechBubble.textContent = randomGreeting;
+                    speechBubble.style.position = 'absolute';
+                    speechBubble.style.top = `${event.clientY}px`;
+                    speechBubble.style.left = `${event.clientX + 100}px`;
+                    document.body.appendChild(speechBubble);
+                }
+            });
+            container.appendChild(card);
+        }
+
+        function replaceCard() {
+            fetchData('https://randomuser.me/api/')
+                .then(data => {
+                    fetchData('https://dog.ceo/api/breeds/image/random')
+                        .then(dogData => {
+                            createCard(data.results[0], dogData);
+                        });
+                });
+        }
+
+
+        async function replaceCard2(selectedBreeds) {
+            console.log(selectedBreeds);
+            var dogImagesContainer = document.getElementById('container');
+            dogImagesContainer.innerHTML = '';
+            let newData = [];
+            for (let s = 0; s < 10; s++) {
+                await fetch('https://dog.ceo/api/breeds/image/random/500') // Fetch 500 dog images
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                        for (let i = 0; i < 50; i++) {
+                            newData.push(data.message[i]);
+                        }
+                        newData = newData.filter((item, index) => newData.indexOf(item) === index); // Remove duplicates
+                    })
+                    .catch(error => console.error('Error fetching dog images:', error));
+            }
+
+            console.log(newData);
+
+            newData.forEach(url => {
+                selectedBreeds.forEach(filterbreed => {
+                    if (filterbreed !== '' && url.includes(filterbreed) && !shouldExit) {
+                        fetchData('https://randomuser.me/api/')
+                            .then(user => {
+                                // dogImages.push(a);
+                                if (!shouldExit) createCard1(user.results[0], url);
+                                count++;
+                                console.log(url);
+                                console.log(count);
+                                if (count >= 10) {
+                                    shouldExit = true;
+                                }
+                            })
+                    }
+                })
+
+            })
+        };
+
+        function openChat(ownerName) {
+            chatBox.style.display = 'block';
+            chatBox.innerHTML = `<p class="greeting">Greetings from ${ownerName}'s dog!</p> 
+                         <div class="messages"></div> 
+                         <input type="text" placeholder="Type a message..."> 
+                         <button onclick="sendMessage()">Send</button> 
+                         <button onclick="closeChat()">Close</button>`;
+            document.body.appendChild(chatBox);
+        }
+        function sendMessage() {
+            const input = chatBox.querySelector('input');
+            const message = input.value;
+            if (message.trim() !== '') {
+                messages.push(message);
+                displayMessages();
+                input.value = '';
+            }
+        }
+        function displayMessages() {
+            const messagesDiv = chatBox.querySelector('.messages');
+            messagesDiv.innerHTML = messages.map((msg, index) => {
+                return `<div> 
+                    <p>${msg}</p> 
+                    <button onclick="deleteMessage(${index})">Delete</button> 
+                </div>`;
+            }).join('');
+        }
+        function deleteMessage(index) {
+            messages.splice(index, 1);
+            displayMessages();
+        }
+        function closeChat() {
+            chatBox.innerHTML = '';
+            chatBox.style.display = 'none';
+        }
+        document.querySelector('.show-cards-btn').addEventListener('click', () => {
+            container.innerHTML = '';
+            for (let i = 0; i < 10; i++) {
+                replaceCard();
+            }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            for (let i = 0; i < 10; i++) {
+                replaceCard();
+            }
+        });
+        const dogBreeds = ['Select', 'african', 'airedale', 'akita',  'dachshund',  'hound',  'labradoodle', 'poodle', 'pug', 'puggle', 'pyrenees'];
+        const breedSelect = document.getElementById("breed-select");
+        dogBreeds.forEach(breed => {
+            const option = document.createElement("option");
+            option.value = breed.toLowerCase().replace(/\s/g, "-");
+            option.textContent = breed;
+            breedSelect.appendChild(option);
+        });
+        function selectBreed() {
+            count = 0;
+            shouldExit = false;
+            const selectedBreed = breedSelect.value;
+            const selectedBreedElement = document.getElementById("selected-breed");
+            let currentSelection = selectedBreedElement.textContent;
+            let selectedBreeds = currentSelection.split(',').map(breed => breed.trim());
+            if (!selectedBreeds.includes(selectedBreed)) {
+                selectedBreeds.push(selectedBreed);
+                selectedBreedElement.textContent = selectedBreeds.join(', ').replace(/^, /, '');
+                // Add event listener to each added breed element for removal 
+                const breedElements = selectedBreedElement.querySelectorAll('p');
+                breedElements.forEach(breedElement => {
+                    breedElement.addEventListener('click', function () {
+                        const clickedBreed = breedElement.textContent.trim();
+                        selectedBreeds = selectedBreeds.filter(breed => breed !== clickedBreed);
+                        selectedBreedElement.textContent = selectedBreeds.join(', ').replace(/^, /, '');
+                    });
+                });
+                replaceCard2(selectedBreeds);
+            } else {
+                alert("This dog breed is already selected.");
+            }
+        }
+
+        function getRandomGreeting() {
+            const greetings = ["Woof woof", "Grrr!", "Meow??", "Woof!", "Woof woof woof", "WRAFF!!!"];
+            return greetings[Math.floor(Math.random() * greetings.length)];
+        }
+
+    </script>
+</body>
+
+</html>

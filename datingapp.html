@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dating App</title>
+    <style>
+        /* CSS Styles */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .profile-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            text-align: center;
+            border-radius: 30px;
+        }
+
+        .male-profile {
+            background-color: rgb(132, 215, 242);
+            border-radius: 30px;
+        }
+
+        .female-profile {
+            background-color: pink;
+            border-radius: 30px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            justify-content: center;
+            margin: 10px;
+        }
+
+        #filter-women, #filter-men, #filter-both, #not-interested, #interested, .delete-profile, .edit-profile {
+            padding: 5px 20px;
+            margin: 5px;
+            border-radius: 25px;
+            background-color: rgb(226, 238, 169);
+        }
+
+        #filter-women:hover, #filter-men:hover, #filter-both:hover, .delete-profile:hover, .edit-profile:hover {
+            background-color: rgb(8, 168, 35);
+            color: white;
+        }
+
+        .liked-profiles {
+            margin: 20px;
+        }
+
+        .inter {
+            display: flex;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Score: <span id="score">10</span></h2>
+        <div class="profile-card" id="profile-card">
+            <img id="profile-image" src="" alt="Profile Image">
+            <h2 id="profile-name">Name</h2>
+            <p id="profile-age">Age</p>
+            <p id="profile-location">Location</p>
+            <div class="inter">
+                <div id="not-interested">⬅Not Interested</div>
+                <div id="interested">Interested➡</div>
+            </div>
+        </div>
+        <div class="filter-buttons">
+            <button id="filter-women">Women</button>
+            <button id="filter-men">Men</button>
+            <button id="filter-both">Both</button>
+        </div>
+        <div class="liked-profiles">
+            <h3>Liked Profiles</h3>
+            <ul id="liked-list">
+                <!-- Liked profiles will be dynamically added here -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript Code
+        let score = 10;
+        let likedProfiles = [];
+        let currentGenderFilter = '';
+
+        function displayProfile(profile, isLikedProfile) {
+            // Display profile information on the card
+            document.getElementById('profile-name').innerText = profile.name;
+            document.getElementById('profile-age').innerText = profile.age + "years";
+            document.getElementById('profile-location').innerText = profile.location;
+            document.getElementById('profile-image').src = profile.image; // Set profile image
+            // Set background color based on gender
+            document.getElementById('profile-card').classList.remove('male-profile', 'female-profile');
+            document.getElementById('profile-card').classList.add(profile.gender === 'male' ? 'male-profile' : 'female-profile');
+
+
+
+            if (isLikedProfile) {
+                // Add profile to the liked list with Delete and Edit buttons
+                const likedList = document.getElementById('liked-list');
+                const li = document.createElement('li');
+                li.innerHTML = `
+            <div class="liked-profile-card">
+                <img src="${profile.image}" alt="Profile Image" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;">
+                <span>${profile.name}</span>
+                <span>${profile.age}</span>
+                <span>${profile.location}</span>
+                <button class="delete-profile">Delete</button>
+                <button class="edit-profile">Edit</button>
+            </div>
+        `;
+                likedList.appendChild(li);
+            }
+        }
+
+        
+
+        function fetchRandomProfile(gender) {
+            let url = 'https://randomuser.me/api/';
+            if (gender) {
+                url += `?gender=${gender}`;
+            }
+            // Fetch profile from randomuser.me API based on gender filter and display
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const profile = {
+                        name: `${data.results[0].name.first} ${data.results[0].name.last}`,
+                        location: `${data.results[0].location.city}, ${data.results[0].location.country}`,
+                        age: data.results[0].dob.age,
+                        gender: data.results[0].gender,
+                        image: data.results[0].picture.large // Profile image URL
+                    };
+                    displayProfile(profile);
+                });
+        }
+
+        // Initial profile display
+        fetchRandomProfile();
+
+        // Function to prompt the user for more points
+        function promptForMorePoints() {
+            let answer = '';
+            while (answer.toLowerCase() !== 'yes') {
+                answer = prompt('Do you want to swipe more? Yes/No');
+                if (answer.toLowerCase() === 'no') {
+                    continue; // Ask the question again if the user answers 'no'
+                } else if (answer.toLowerCase() === 'yes') {
+                    score += 10; // Add 10 points when the user answers 'yes'
+                    document.getElementById('score').innerText = score;
+                    // // Reset the liked profiles list
+                    likedProfiles = [];
+                    // const likedList = document.getElementById('liked-list');
+                    // likedList.innerHTML = ''; // Clear the list
+                    break;
+                }
+            }
+        }
+
+        // Update the event listener for swipe actions
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowRight') {
+                if (score <= 0) {
+                    promptForMorePoints();
+                } else {
+                    if (likedProfiles.length < 10) {
+                        likedProfiles.push({
+                            name: document.getElementById('profile-name').innerText,
+                            age: document.getElementById('profile-age').innerText,
+                            location: document.getElementById('profile-location').innerText,
+                            image: document.getElementById('profile-image').src
+                        });
+                        displayProfile(likedProfiles[likedProfiles.length - 1], true);
+                        localStorage.setItem('likedProfiles', JSON.stringify(likedProfiles));
+                        score--;
+                        document.getElementById('score').innerText = score;
+                    } else {
+                        // Add a condition to prompt for more points when the liked profiles list is full
+                        promptForMorePoints();
+                    }
+                    fetchRandomProfile(currentGenderFilter);
+                }
+            }
+            else if (event.key === 'ArrowLeft') {
+                fetchRandomProfile(currentGenderFilter);
+            }
+        });
+
+        // Delete profile from liked list
+        document.addEventListener('click', function (event) {
+            if (event.target.classList.contains('delete-profile')) {
+                const profileCard = event.target.closest('.liked-profile-card');
+                const profileIndex = Array.from(profileCard.parentNode.children).indexOf(profileCard);
+                likedProfiles.splice(profileIndex, 1);
+                localStorage.setItem('likedProfiles', JSON.stringify(likedProfiles));
+                // Remove the specific list item element (marker of the card) from the liked list
+                profileCard.parentNode.remove();
+
+                // Increase the score by 1 when a profile is deleted
+                score++;
+                document.getElementById('score').innerText = score;
+            }
+        });
+
+        // Edit profile information
+        document.addEventListener('click', function (event) {
+            if (event.target.classList.contains('edit-profile')) {
+                const profileCard = event.target.closest('.liked-profile-card');
+                const profileIndex = Array.from(profileCard.parentNode.children).indexOf(profileCard);
+                const newName = prompt('Enter new name:');
+                const newAge = prompt('Enter new age:');
+                const newLocation = prompt('Enter new location:');
+                if (newName && newAge && newLocation) {
+                    likedProfiles[profileIndex].name = newName;
+                    likedProfiles[profileIndex].age = newAge;
+                    likedProfiles[profileIndex].location = newLocation;
+                    localStorage.setItem('likedProfiles', JSON.stringify(likedProfiles));
+                    profileCard.querySelector('span').textContent = newName;
+                    profileCard.querySelectorAll('span')[1].textContent = newAge + "years";
+                    profileCard.querySelectorAll('span')[2].textContent = newLocation;
+                }
+            }
+        });
+
+        // Filter buttons functionality
+        document.getElementById('filter-women').addEventListener('click', function () {
+            currentGenderFilter = 'female';
+            fetchRandomProfile('female');
+        });
+
+        document.getElementById('filter-men').addEventListener('click', function () {
+            currentGenderFilter = 'male';
+            fetchRandomProfile('male');
+        });
+
+        document.getElementById('filter-both').addEventListener('click', function () {
+            currentGenderFilter = '';
+            fetchRandomProfile();
+        });
+
+    </script>
+</body>
+
+</html>
